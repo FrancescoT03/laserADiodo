@@ -18,14 +18,15 @@ sigma_W1 = np.flip(sigma_W1)
 #"""
 
 #definizione della temperatura per nome file
-temp = 22
+temp = 12
 
 #calcolo di derivate prime e seconde
 d_1 = np.gradient(W_1, I_1)
 dd_1 = np.gradient(d_1,I_1)
+
 #####
 #definizione di un treshold per la derivata seconda
-epsilon = 5
+epsilon = 10
 #####
 #definizione delle maschere di selezione per i nuovi array
 
@@ -77,9 +78,10 @@ print(chi2_left, chi2_right)
 #calclo il punto di intersezione
 #uso uncertanties per propagare l'errore sui parametri stimati dal fit
 P = point(unumpy.uarray(popt_1_left,sigma_1_left), unumpy.uarray(popt_1_right,sigma_1_right))
-print(P)
-
-
+print(f'punto di intersezione fra le due rette {P}')
+P_x = -popt_1_right[1]/popt_1_right[0]
+sigma_Px = P_x*np.sqrt(np.sum((sigma_1_right/popt_1_right)**2))
+print(f'punto di intersezione fra la retta sopra soglia e asse x {P_x} +- {sigma_Px}')
 #plot dei dati
 X = np.linspace(I_1[0], I_1[-1], 100) #linspace per plot dati
 fig_1 = plt.figure(f'temperatura {temp} °C')
