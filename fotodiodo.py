@@ -18,7 +18,7 @@ sigma_W1 = np.flip(sigma_W1)
 #"""
 
 #definizione della temperatura per nome file
-temp = 12
+temp = 22
 
 #calcolo di derivate prime e seconde
 d_1 = np.gradient(W_1, I_1)
@@ -84,30 +84,35 @@ sigma_Px = P_x*np.sqrt(np.sum((sigma_1_right/popt_1_right)**2))
 print(f'punto di intersezione fra la retta sopra soglia e asse x {P_x} +- {sigma_Px}')
 #plot dei dati
 X = np.linspace(I_1[0], I_1[-1], 100) #linspace per plot dati
+XX = np.linspace(I_1[0],P[0].n, 100)
+XXX = np.linspace(P[0].n, I_1[-1],100)
 fig_1 = plt.figure(f'temperatura {temp} °C')
-ax1 = fig_1.add_subplot(3,1,1) #grafico
-ax1.set_title(f'temperatura {temp} °C')
-ax3 = fig_1.add_subplot(3,1,3) #derivate
-ax2 = fig_1.add_subplot(3,1,2) #residui
+fig_2 =plt.figure(f'derivate temperatura {temp}')
 
-ax1.errorbar(elbow_1,W_1[diff_1 >0], fmt='.', color = 'gray') #il gomito scartato lo plotto di grigio
-ax1.errorbar(I_1[mask_1_left],W_1[mask_1_left], yerr=sigma_W1[mask_1_left], fmt='.', color = 'blue') #sinistra
-ax1.errorbar(I_1[mask_1_right],W_1[mask_1_right], yerr= sigma_W1[mask_1_right],fmt='.', color = 'purple') #destra
-ax1.plot(X,line(X,*popt_1_left), color ='blue') #fit sinistra
-ax1.plot(X,line(X,*popt_1_right), color = 'purple') #fit destra
-ax1.errorbar(P[0].n, P[1].n, fmt='.', color = 'darkgreen') #punto di intersezione
-ax1.vlines(P[0].n,W_1[0],W_1[-1],color='darkgreen', linestyles='-.')
+ax1 = fig_1.add_subplot(2,1,1) #grafico
+ax1.set_title(f'temperatura {temp} °C')
+ax2 = fig_1.add_subplot(2,1,2) #residui
+ax3 = fig_2.add_subplot(1,1,1) #derivate
+ax1.plot(elbow_1,W_1[diff_1 >0], marker = (6, 2, 60), markersize= 8, linestyle = 'None', color = 'black') #il gomito scartato lo plotto asterischi di nero 
+ax1.errorbar(I_1[mask_1_left],W_1[mask_1_left], yerr=sigma_W1[mask_1_left], fmt='.', color = 'royalblue') #sinistra
+ax1.errorbar(I_1[mask_1_right],W_1[mask_1_right], yerr= sigma_W1[mask_1_right],fmt='.', color = 'orangered') #destra
+ax1.plot(XX,line(XX,*popt_1_left), color ='lightseagreen') #fit sinistra
+ax1.plot(XXX,line(XXX,*popt_1_right), color = 'orange') #fit destra
+ax1.errorbar(P[0].n, P[1].n, fmt='.', color = 'red', label=f'$I_s$ = {P[0]}') #punto di intersezione
+ax1.vlines(P[0].n,W_1[0],W_1[-1],color='red', linestyles='-.')
+ax1.legend(handletextpad=1,fancybox=True,loc='upper left',labelcolor='black',fontsize = 12)
 #bellurie
 ax1.set_ylabel('potenza [$\mu W$]')
 ax1.set_ylim(min(W_1) - 50)  # numero completamente arbitrario usato solo perché sembrava bello
 
 #plot dei residui
-ax2.errorbar(I_1[mask_1_left], res_1_left, fmt='.', color='blue') #sinistra 
-ax2.errorbar(I_1[mask_1_right], res_1_right, fmt='.', color = 'purple') #destra
+ax2.errorbar(I_1[mask_1_left], res_1_left, fmt='.', color='royalblue') #sinistra 
+ax2.errorbar(I_1[mask_1_right], res_1_right, fmt='.', color = 'orangered') #destra
 #ax2.plot(I_1, np.full(I_1.shape, 0), linestyle='--', color ='k') #linea 0
 ax2.set_ylabel('residui normalizzati')
-
+ax2.set_xlabel('corrente [$mA$]')
 #plot delle derivate
+
 ax3.plot(I_1,d_1, marker='.',color = 'red', label = 'derivata prima')
 ax3.plot(I_1,dd_1, marker='.',color = 'orange', label ='derivata seconda') 
 #ax3.plot(I_1, np.full(I_1.shape, 0), linestyle='--', color ='k') #zero
@@ -119,4 +124,20 @@ ax3.set_xlabel('corrente [$mA$]')
 ax1.grid(which='both', ls='dashed', color='gray')
 ax2.grid(which='both', ls='dashed', color='gray')
 ax3.grid(which='both', ls='dashed', color='gray')
+
+
+#plot zoommato sul gomito
+fig_3 = plt.figure(f'temperatura {temp} °C zoom')
+ax4= fig_3.add_subplot(1,1,1)
+ax4.plot(elbow_1,W_1[diff_1 >0], marker = (6, 2, 60), markersize= 8, linestyle = 'None', color = 'black') #il gomito scartato lo plotto asterischi di nero 
+ax4.errorbar(I_1[mask_1_left],W_1[mask_1_left], yerr=sigma_W1[mask_1_left], fmt='.', color = 'royalblue') #sinistra
+ax4.errorbar(I_1[mask_1_right],W_1[mask_1_right], yerr= sigma_W1[mask_1_right],fmt='.', color = 'orangered') #destra
+ax4.plot(XX,line(XX,*popt_1_left), color ='lightseagreen') #fit sinistra
+ax4.plot(XXX,line(XXX,*popt_1_right), color = 'orange') #fit destra
+ax4.errorbar(P[0].n, P[1].n, fmt='.', color = 'red', label=f'$I_s$ = {P[0]}') #punto di intersezione
+ax4.vlines(P[0].n,W_1[0],W_1[-1],color='red', linestyles='-.')
+ax4.set_xlim(I_1[mask_1_left][-2] -1 ,I_1[mask_1_right][1] + 1)
+ax4.legend(handletextpad=1,fancybox=True,loc='upper left',labelcolor='black',fontsize = 12)
+ax4.grid(which='both', ls='dashed', color='gray')
+#bellurie
 plt.show()
