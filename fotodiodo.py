@@ -5,10 +5,12 @@ from uncertainties import ufloat
 from uncertainties import unumpy
 
 #import dei dati
-I_1, sigma_I1,W_1, sigma_W1 = np.genfromtxt(fname ='/home/francesco/Scrivania/labMateria/laserADiodo/I_P_roomtemperature_up.txt', usecols=(0,1,2,3), skip_header=0,skip_footer=0, unpack=True )
+#I_1, sigma_I1,W_1, sigma_W1 = np.genfromtxt(fname ='/home/francesco/Scrivania/labMateria/laserADiodo/I_P_roomtemperature_up.txt', usecols=(0,1,2,3), skip_header=0,skip_footer=0, unpack=True )
 #I_1, sigma_I1, W_1, sigma_W1 = np.genfromtxt(fname ='/home/francesco/Scrivania/labMateria/laserADiodo/I_P_12C(1).txt', usecols=(0,1,2,3), skip_header=0,skip_footer=0, unpack=True )
-#I_1,sigma_I1,W_1, sigma_W1 = np.genfromtxt(fname ='/home/francesco/Scrivania/labMateria/laserADiodo/I_P_44_down.txt', usecols=(0,1,2,3), skip_header=0,skip_footer=0, unpack=True )
-
+I_1,sigma_I1,W_1, sigma_W1 = np.genfromtxt(fname ='/home/francesco/Scrivania/labMateria/laserADiodo/I_P_44_down_2.txt', usecols=(0,1,2,3), skip_header=0,skip_footer=0, unpack=True )
+W_1  = W_1/1000
+sigma_W1 = sigma_W1/1000
+sigma_W1 += 0.03*W_1
 """
 # questo serve solo per il terzo set di dati che è orientato in ordine decrescente
 I_1 = np.flip(I_1)
@@ -26,21 +28,26 @@ dd_1 = np.gradient(d_1,I_1)
 
 #####
 #definizione di un treshold per la derivata seconda
-epsilon = 10
+epsilon = 0.04
 #####
 #definizione delle maschere di selezione per i nuovi array
 
 diff_1  = dd_1 - epsilon #la differenza sarà maggiore di zero solo per i punti nel gomito, diminuire il treshold aumenta i punti nel gomito
-elbow_1 = I_1[diff_1 >0] # definisco il gomito come i punti per cui la derivata seconda è maggiore del treshold
+elbow_1 = I_1[np.abs(dd_1) >epsilon] # definisco il gomito come i punti per cui la derivata seconda è maggiore del treshold
+#mask_elbow = np.where(I_1 >elbow_1[0] and I_1< elbow_1[-1], True,False)
+mask_elbow = (I_1 >= elbow_1[0]) & (I_1 <= elbow_1[-1])
+
 mask_1_left = np.where(I_1 < elbow_1[0], True,False) #definisco una maschera per i punti prima del gomito
 mask_1_right= np.where(I_1 > elbow_1[-1],True,False) #deginisco una maschera per i punti dopo del gomito
 
 '''
 #print degli array solo per vedere se funziona
 print(I_1)
+
 print(elbow_1)
 print(mask_1_left)
 print(mask_1_right)
+print(len(I_1),len(mask_1_left),len(mask_1_right))
 print(I_1[mask_1_left])
 print(I_1[mask_1_right])
 #'''
@@ -59,8 +66,8 @@ def point(l1, l2):
 
 
 #Fitting
-popt_1_right, pcov_1_right = curve_fit(line,I_1[mask_1_right ],W_1[mask_1_right], sigma=sigma_W1[mask_1_right]) #retta destra
-popt_1_left, pcov_1_left = curve_fit(line,I_1[mask_1_left],W_1[mask_1_left], sigma=sigma_W1[mask_1_left])      #retta sinistra
+popt_1_right, pcov_1_right = curve_fit(line,I_1[mask_1_right ],W_1[mask_1_right], sigma=sigma_W1[mask_1_right], absolute_sigma= True) #retta destra
+popt_1_left, pcov_1_left = curve_fit(line,I_1[mask_1_left],W_1[mask_1_left], sigma=sigma_W1[mask_1_left], absolute_sigma= True)      #retta sinistra
 
 #calcolo dei residui
 res_1_left= (W_1[mask_1_left] - line(I_1[mask_1_left], *popt_1_left))/sigma_W1[mask_1_left]
@@ -89,11 +96,12 @@ XXX = np.linspace(P[0].n, I_1[-1],100)
 fig_1 = plt.figure(f'temperatura {temp} °C')
 fig_2 =plt.figure(f'derivate temperatura {temp}')
 
+
 ax1 = fig_1.add_subplot(2,1,1) #grafico
 ax1.set_title(f'temperatura {temp} °C')
 ax2 = fig_1.add_subplot(2,1,2) #residui
 ax3 = fig_2.add_subplot(1,1,1) #derivate
-ax1.plot(elbow_1,W_1[diff_1 >0], marker = (6, 2, 60), markersize= 8, linestyle = 'None', color = 'black') #il gomito scartato lo plotto asterischi di nero 
+ax1.plot(I_1[mask_elbow],W_1[mask_elbow], marker = (6, 2, 60), markersize= 8, linestyle = 'None', color = 'black') #il gomito scartato lo plotto asterischi di nero 
 ax1.errorbar(I_1[mask_1_left],W_1[mask_1_left], yerr=sigma_W1[mask_1_left], fmt='.', color = 'royalblue') #sinistra
 ax1.errorbar(I_1[mask_1_right],W_1[mask_1_right], yerr= sigma_W1[mask_1_right],fmt='.', color = 'orangered') #destra
 ax1.plot(XX,line(XX,*popt_1_left), color ='lightseagreen') #fit sinistra
@@ -102,13 +110,16 @@ ax1.errorbar(P[0].n, P[1].n, fmt='.', color = 'red', label=f'$I_s$ = {P[0]}') #p
 ax1.vlines(P[0].n,W_1[0],W_1[-1],color='red', linestyles='-.')
 ax1.legend(handletextpad=1,fancybox=True,loc='upper left',labelcolor='black',fontsize = 12)
 #bellurie
-ax1.set_ylabel('potenza [$\mu W$]')
-ax1.set_ylim(min(W_1) - 50)  # numero completamente arbitrario usato solo perché sembrava bello
+ax1.set_ylabel('potenza [$m W$]')
+ax1.set_ylim(min(W_1) - 0.2)  # numero completamente arbitrario usato solo perché sembrava bello
 
 #plot dei residui
 ax2.errorbar(I_1[mask_1_left], res_1_left, fmt='.', color='royalblue') #sinistra 
 ax2.errorbar(I_1[mask_1_right], res_1_right, fmt='.', color = 'orangered') #destra
 #ax2.plot(I_1, np.full(I_1.shape, 0), linestyle='--', color ='k') #linea 0
+ax2.set_xlim(I_1[0]- 5, I_1[-1] + 5)
+ax1.set_xlim(I_1[0]- 5, I_1[-1] + 5)
+ax2.hlines(0,I_1[0]-6, I_1[-1]+6, color='black',linestyles='dashed')
 ax2.set_ylabel('residui normalizzati')
 ax2.set_xlabel('corrente [$mA$]')
 #plot delle derivate
@@ -117,6 +128,7 @@ ax3.plot(I_1,d_1, marker='.',color = 'red', label = 'derivata prima')
 ax3.plot(I_1,dd_1, marker='.',color = 'orange', label ='derivata seconda') 
 #ax3.plot(I_1, np.full(I_1.shape, 0), linestyle='--', color ='k') #zero
 ax3.plot(I_1, np.full(I_1.shape, epsilon), linestyle='--', color = 'darkgreen', label='treshold') #treshold
+ax3.plot(I_1, np.full(I_1.shape,  - epsilon), linestyle='--', color = 'darkgreen') #treshold
 ax3.legend(handletextpad=1,fancybox=True,loc='upper left',labelcolor='black',fontsize = 12)
 ax3.set_xlabel('corrente [$mA$]')
 
@@ -129,7 +141,7 @@ ax3.grid(which='both', ls='dashed', color='gray')
 #plot zoommato sul gomito
 fig_3 = plt.figure(f'temperatura {temp} °C zoom')
 ax4= fig_3.add_subplot(1,1,1)
-ax4.plot(elbow_1,W_1[diff_1 >0], marker = (6, 2, 60), markersize= 8, linestyle = 'None', color = 'black') #il gomito scartato lo plotto asterischi di nero 
+ax4.plot(I_1[mask_elbow],W_1[mask_elbow], marker = (6, 2, 60), markersize= 8, linestyle = 'None', color = 'black') #il gomito scartato lo plotto asterischi di nero 
 ax4.errorbar(I_1[mask_1_left],W_1[mask_1_left], yerr=sigma_W1[mask_1_left], fmt='.', color = 'royalblue') #sinistra
 ax4.errorbar(I_1[mask_1_right],W_1[mask_1_right], yerr= sigma_W1[mask_1_right],fmt='.', color = 'orangered') #destra
 ax4.plot(XX,line(XX,*popt_1_left), color ='lightseagreen') #fit sinistra
